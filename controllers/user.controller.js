@@ -4,7 +4,7 @@ import DecodeJwtToken from "../utils/DecodeJwtToken.utils.js";
 import ErrorHandler from "../utils/ErrorHandler.util.js";
 import sendEmail from "../utils/SendEmail.util.js";
 import userModel from "../models/user.model.js";
-import encodeActivationToken from "../utils/EncodeJwtToken.util.js";
+import encodeJwtToken from "../utils/EncodeJwtToken.util.js";
 
 // ********************** register user **********************
 export const registerUserController = AsyncMiddleware(
@@ -13,7 +13,7 @@ export const registerUserController = AsyncMiddleware(
     const user = await userModel.findOne({ email });
     if (user) {
       return next(
-        new ErrorHandler("Email already exists. Please try logging in.", 400)
+        new ErrorHandler("Email already exists. Please try logging in.", 409)
       );
     }
     const activationToken = createActivationToken({ name, email, password });
@@ -29,8 +29,7 @@ export const registerUserController = AsyncMiddleware(
       data,
     });
 
-    return res.json({
-      status: true,
+    return res.status(201).json({
       message: `Please check your mail: ${email} to activate your account`,
       data: activationToken,
     });
@@ -41,7 +40,6 @@ export const registerUserController = AsyncMiddleware(
 
 export const activateUserController = AsyncMiddleware(
   async (req, res, next) => {
-    console.log(req.query.token);
     const user = DecodeJwtToken(req?.query?.token);
     if (!user) {
       return next(
@@ -53,7 +51,6 @@ export const activateUserController = AsyncMiddleware(
     }
     const data = await userModel.create(user);
     return res.json({
-      status: true,
       message: "User activated successfully.",
       data,
     });
@@ -64,20 +61,22 @@ export const activateUserController = AsyncMiddleware(
 
 export const loginUserController = AsyncMiddleware(async (req, res, next) => {
   const { email, password } = req.body;
-  console.log(password);
   const user = await userModel.findOne({ email }).select("+password");
   if (!user) {
-    return next(new ErrorHandler("Invalid email or password", 404));
+    return next(new ErrorHandler("Invalid email or password", 401));
   }
   const comparePassword = await user.comparePassword(password);
   if (!comparePassword) {
-    return next(new ErrorHandler("Invalid email or password", 400));
+    return next(new ErrorHandler("Invalid email or password", 401));
   }
-
+  if (user.status !== "Active") {
+    return next(
+      new ErrorHandler("Please contact to admin to activate your account", 403)
+    );
+  }
   return res.json({
-    status: true,
     message: "User login successfully.",
     data: user,
-    token: encodeActivationToken({ _id: user._id, email: user.email }),
+    token: encodeJwtToken({ _id: user._id, email: user.email }),
   });
 });

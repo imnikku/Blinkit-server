@@ -17,17 +17,15 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(morgan());
 app.use(helmet({ crossOriginResourcePolicy: false }));
-// app.use(ResponseInterceptor);
-
-// all route .....
-app.use("/user", userRoute);
-
-// custome error ..........
-app.use(ErrorMiddleware);
 
 // Response Interceptor ...
+app.use(ResponseInterceptor);
 
-app.post("/", (req, res) => {
+// all route .....
+
+app.use("/user", userRoute);
+
+app.get("/", (req, res) => {
   res.json({ message: "Server running..." });
 });
 
@@ -38,7 +36,10 @@ app.all("*", (req, res) => {
     message: `Route ${req.originalUrl} not found`,
   });
 });
+// custome error ..........
+app.use(ErrorMiddleware);
 
+// connect db and start sever ......
 connectMongo().then(() => {
   app.listen(process.env.PORT || 5000, () => {
     console.log(`Server running on port ${process.env.PORT || 5000}`);

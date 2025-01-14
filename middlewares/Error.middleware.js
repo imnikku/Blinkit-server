@@ -3,7 +3,6 @@ import ErrorHandler from "../utils/ErrorHandler.util.js";
 function ErrorMiddleware(err, req, res, next) {
   err.statusCode = err.statusCode || 500;
   err.message = err.message || "Internal Server Error";
-  console.log(err);
   // wrong mongodb id error ........
 
   if (err.code === 11000) {
@@ -17,7 +16,7 @@ function ErrorMiddleware(err, req, res, next) {
   }
 
   res.status(err.statusCode).json({
-    success: false,
+    status: false,
     message: err.message,
     data: null,
   });

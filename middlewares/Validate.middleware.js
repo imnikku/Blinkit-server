@@ -25,7 +25,6 @@ const ValidateMiddleware = (schema) => (req, res, next) => {
       default:
         break;
     }
-    console.log(err);
     return next(
       new ErrorHandler(message ? message : error.details[0].message, 400)
     );
